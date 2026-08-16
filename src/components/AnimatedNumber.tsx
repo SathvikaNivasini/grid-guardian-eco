@@ -4,9 +4,9 @@ interface Props {
   value: number;
   decimals?: number;
   durationMs?: number;
-  className?: string;
-  suffix?: string;
-  prefix?: string;
+  className?: string | undefined;
+  suffix?: string | undefined;
+  prefix?: string | undefined;
 }
 
 /** Counts smoothly from the previous value to the new one. */

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CityRouteImport } from './routes/city'
+import { Route as ImpactRouteImport } from './routes/impact'
 import { Route as ShieldRouteImport } from './routes/shield'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const CityRoute = CityRouteImport.update({
   path: '/city',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImpactRoute = ImpactRouteImport.update({
+  id: '/impact',
+  path: '/impact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShieldRoute = ShieldRouteImport.update({
   id: '/shield',
   path: '/shield',
@@ -32,30 +38,34 @@ const ShieldRoute = ShieldRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/city': typeof CityRoute
+  '/impact': typeof ImpactRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/city': typeof CityRoute
+  '/impact': typeof ImpactRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/city': typeof CityRoute
+  '/impact': typeof ImpactRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/city' | '/shield'
+  fullPaths: '/' | '/city' | '/impact' | '/shield'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/city' | '/shield'
-  id: '__root__' | '/' | '/city' | '/shield'
+  to: '/' | '/city' | '/impact' | '/shield'
+  id: '__root__' | '/' | '/city' | '/impact' | '/shield'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CityRoute: typeof CityRoute
+  ImpactRoute: typeof ImpactRoute
   ShieldRoute: typeof ShieldRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/impact': {
+      id: '/impact'
+      path: '/impact'
+      fullPath: '/impact'
+      preLoaderRoute: typeof ImpactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shield': {
       id: '/shield'
       path: '/shield'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CityRoute: CityRoute,
+  ImpactRoute: ImpactRoute,
   ShieldRoute: ShieldRoute,
 }
 export const routeTree = rootRouteImport
