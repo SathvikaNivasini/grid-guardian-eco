@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BadgesRouteImport } from './routes/badges'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CityRouteImport } from './routes/city'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as ImpactRouteImport } from './routes/impact'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShieldRouteImport } from './routes/shield'
@@ -20,6 +23,11 @@ import { Route as ShieldRouteImport } from './routes/shield'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BadgesRoute = BadgesRouteImport.update({
+  id: '/badges',
+  path: '/badges',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengesRoute = ChallengesRouteImport.update({
@@ -32,9 +40,19 @@ const CityRoute = CityRouteImport.update({
   path: '/city',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImpactRoute = ImpactRouteImport.update({
   id: '/impact',
   path: '/impact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -55,18 +73,24 @@ const ShieldRoute = ShieldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/challenges': typeof ChallengesRoute
   '/city': typeof CityRoute
+  '/guide': typeof GuideRoute
   '/impact': typeof ImpactRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/challenges': typeof ChallengesRoute
   '/city': typeof CityRoute
+  '/guide': typeof GuideRoute
   '/impact': typeof ImpactRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
@@ -74,9 +98,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/badges': typeof BadgesRoute
   '/challenges': typeof ChallengesRoute
   '/city': typeof CityRoute
+  '/guide': typeof GuideRoute
   '/impact': typeof ImpactRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
@@ -85,27 +112,36 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/badges'
     | '/challenges'
     | '/city'
+    | '/guide'
     | '/impact'
+    | '/leaderboard'
     | '/profile'
     | '/settings'
     | '/shield'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/badges'
     | '/challenges'
     | '/city'
+    | '/guide'
     | '/impact'
+    | '/leaderboard'
     | '/profile'
     | '/settings'
     | '/shield'
   id:
     | '__root__'
     | '/'
+    | '/badges'
     | '/challenges'
     | '/city'
+    | '/guide'
     | '/impact'
+    | '/leaderboard'
     | '/profile'
     | '/settings'
     | '/shield'
@@ -113,9 +149,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BadgesRoute: typeof BadgesRoute
   ChallengesRoute: typeof ChallengesRoute
   CityRoute: typeof CityRoute
+  GuideRoute: typeof GuideRoute
   ImpactRoute: typeof ImpactRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   ShieldRoute: typeof ShieldRoute
@@ -128,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/badges': {
+      id: '/badges'
+      path: '/badges'
+      fullPath: '/badges'
+      preLoaderRoute: typeof BadgesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/challenges': {
@@ -144,11 +190,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/impact': {
       id: '/impact'
       path: '/impact'
       fullPath: '/impact'
       preLoaderRoute: typeof ImpactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -177,9 +237,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BadgesRoute: BadgesRoute,
   ChallengesRoute: ChallengesRoute,
   CityRoute: CityRoute,
+  GuideRoute: GuideRoute,
   ImpactRoute: ImpactRoute,
+  LeaderboardRoute: LeaderboardRoute,
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   ShieldRoute: ShieldRoute,

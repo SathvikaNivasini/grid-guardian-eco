@@ -1,5 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { Globe2, Shield, Building2, BarChart3, Trophy, Settings, User } from "lucide-react";
+import {
+  Globe2,
+  Shield,
+  Building2,
+  BarChart3,
+  Trophy,
+  Settings,
+  User,
+  Medal,
+  Award,
+  BookOpen,
+} from "lucide-react";
 
 import { useGuardian } from "../state/guardian";
 import { AnimatedNumber } from "./AnimatedNumber";
@@ -8,12 +19,15 @@ import { levelFor } from "../services/userService";
 const MAIN = [
   { to: "/", label: "Overview", icon: Globe2 },
   { to: "/shield", label: "Detox Shield", icon: Shield },
+  { to: "/leaderboard", label: "Leaderboard", icon: Medal },
+  { to: "/badges", label: "Badges", icon: Award },
   { to: "/city", label: "Eco-City", icon: Building2 },
   { to: "/impact", label: "Impact", icon: BarChart3 },
   { to: "/challenges", label: "Challenges", icon: Trophy },
 ] as const;
 
 const FOOTER = [
+  { to: "/guide", label: "How to play", icon: BookOpen },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/profile", label: "Profile", icon: User },
 ] as const;
