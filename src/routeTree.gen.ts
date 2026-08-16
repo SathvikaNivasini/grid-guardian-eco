@@ -14,6 +14,7 @@ import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CityRouteImport } from './routes/city'
 import { Route as ImpactRouteImport } from './routes/impact'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShieldRouteImport } from './routes/shield'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShieldRoute = ShieldRouteImport.update({
   id: '/shield',
   path: '/shield',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/city': typeof CityRoute
   '/impact': typeof ImpactRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/city': typeof CityRoute
   '/impact': typeof ImpactRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,28 @@ export interface FileRoutesById {
   '/city': typeof CityRoute
   '/impact': typeof ImpactRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/challenges' | '/city' | '/impact' | '/profile' | '/shield'
+  fullPaths:
+    | '/'
+    | '/challenges'
+    | '/city'
+    | '/impact'
+    | '/profile'
+    | '/settings'
+    | '/shield'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/challenges' | '/city' | '/impact' | '/profile' | '/shield'
+  to:
+    | '/'
+    | '/challenges'
+    | '/city'
+    | '/impact'
+    | '/profile'
+    | '/settings'
+    | '/shield'
   id:
     | '__root__'
     | '/'
@@ -84,6 +107,7 @@ export interface FileRouteTypes {
     | '/city'
     | '/impact'
     | '/profile'
+    | '/settings'
     | '/shield'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +117,7 @@ export interface RootRouteChildren {
   CityRoute: typeof CityRoute
   ImpactRoute: typeof ImpactRoute
   ProfileRoute: typeof ProfileRoute
+  SettingsRoute: typeof SettingsRoute
   ShieldRoute: typeof ShieldRoute
 }
 
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shield': {
       id: '/shield'
       path: '/shield'
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   CityRoute: CityRoute,
   ImpactRoute: ImpactRoute,
   ProfileRoute: ProfileRoute,
+  SettingsRoute: SettingsRoute,
   ShieldRoute: ShieldRoute,
 }
 export const routeTree = rootRouteImport
