@@ -21,7 +21,7 @@ export const LEVELS: LevelDef[] = [
 ];
 
 export function levelFor(detoxMinutes: number) {
-  let current: LevelDef = LEVELS[0];
+  let current: LevelDef = LEVELS[0]!;
 
   for (const l of LEVELS) if (detoxMinutes >= l.minMinutes) current = l;
   const next = LEVELS.find((l) => l.level === current.level + 1);
