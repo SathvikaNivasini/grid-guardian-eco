@@ -126,7 +126,7 @@ export function EcoCity({
 }: {
   buildings: CityBuilding[];
   onSelect: (b: CityBuilding | null) => void;
-  selectedId?: string;
+  selectedId?: string | undefined;
 }) {
   const [zoom, setZoom] = useState(1);
   const placed: Placed[] = buildings.map((b, i) => ({ ...b, ...plotFor(b.slot ?? i) }));

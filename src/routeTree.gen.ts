@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CityRouteImport } from './routes/city'
 import { Route as ShieldRouteImport } from './routes/shield'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityRoute = CityRouteImport.update({
+  id: '/city',
+  path: '/city',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShieldRoute = ShieldRouteImport.update({
@@ -25,27 +31,31 @@ const ShieldRoute = ShieldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/city': typeof CityRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/city': typeof CityRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/city': typeof CityRoute
   '/shield': typeof ShieldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/shield'
+  fullPaths: '/' | '/city' | '/shield'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/shield'
-  id: '__root__' | '/' | '/shield'
+  to: '/' | '/city' | '/shield'
+  id: '__root__' | '/' | '/city' | '/shield'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CityRoute: typeof CityRoute
   ShieldRoute: typeof ShieldRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city': {
+      id: '/city'
+      path: '/city'
+      fullPath: '/city'
+      preLoaderRoute: typeof CityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shield': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CityRoute: CityRoute,
   ShieldRoute: ShieldRoute,
 }
 export const routeTree = rootRouteImport
