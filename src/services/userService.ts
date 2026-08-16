@@ -6,16 +6,23 @@ import type { UserState } from "./types";
  * Profile, streak, level and derived statistics.
  */
 
-export const LEVELS = [
+export interface LevelDef {
+  level: number;
+  title: string;
+  minMinutes: number;
+}
+
+export const LEVELS: LevelDef[] = [
   { level: 1, title: "Observer", minMinutes: 0 },
   { level: 2, title: "Guardian", minMinutes: 60 },
   { level: 3, title: "Protector", minMinutes: 180 },
   { level: 4, title: "Grid Keeper", minMinutes: 420 },
   { level: 5, title: "Earth Guardian", minMinutes: 900 },
-] as const;
+];
 
 export function levelFor(detoxMinutes: number) {
-  let current = LEVELS[0];
+  let current: LevelDef = LEVELS[0];
+
   for (const l of LEVELS) if (detoxMinutes >= l.minMinutes) current = l;
   const next = LEVELS.find((l) => l.level === current.level + 1);
   const span = next ? next.minMinutes - current.minMinutes : 1;
