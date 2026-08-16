@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { GuardianProvider } from "../state/guardian";
+import { Sidebar, MobileNav, MobileTopBar } from "../components/Nav";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +80,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "GridGuardian" },
+      {
+        name: "description",
+        content:
+          "Turn live electricity-grid carbon intensity into a digital detox game. Shield the grid, earn Eco-Coins, build a clean-energy city.",
+      },
+      { property: "og:title", content: "GridGuardian" },
+      {
+        property: "og:description",
+        content: "Detox when the grid is dirtiest and grow your own clean-energy city.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -102,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -119,8 +127,19 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <GuardianProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          <Sidebar />
+          <MobileTopBar />
+          <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 lg:pl-8 lg:pr-8 lg:pb-12 lg:ml-64 lg:max-w-[calc(72rem-16rem)]">
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </main>
+          <MobileNav />
+        </div>
+        <Toaster />
+      </GuardianProvider>
     </QueryClientProvider>
   );
 }
+
