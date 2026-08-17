@@ -1,4 +1,4 @@
-export type GridZone = "clean" | "moderate" | "critical";
+export type GridZone = "clean" | "moderate" | "high" | "critical";
 
 export interface GridPoint {
   /** epoch ms */
@@ -17,6 +17,8 @@ export interface GridSnapshot {
   providerLabel: string;
   simulated: boolean;
   updatedAt: number;
+  region?: string;
+  stale?: boolean;
 }
 
 export interface DetoxSession {
@@ -45,7 +47,9 @@ export interface CityBuildingSpec {
     | "forest"
     | "water"
     | "tower"
-    | "storage";
+    | "storage"
+    | "garden"
+    | "bike";
 }
 
 export interface CityBuilding {
@@ -53,6 +57,12 @@ export interface CityBuilding {
   specId: string;
   builtAt: number;
   slot: number;
+}
+
+export interface UserSettings {
+  devicePowerWatts: number;
+  region: string;
+  gridSource: "auto" | "simulation";
 }
 
 export interface UserState {
@@ -64,4 +74,7 @@ export interface UserState {
   sessions: DetoxSession[];
   buildings: CityBuilding[];
   claimedChallenges: string[];
+  settings: UserSettings;
+  dailyMissionDate: string;
+  claimedDailyMissions: string[];
 }

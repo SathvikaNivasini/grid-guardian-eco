@@ -40,7 +40,7 @@ const RIVALS: Rival[] = [
 
 /** Rough CO₂ estimate for a rival so the table stays internally consistent. */
 function rivalCo2(minutes: number) {
-  return (12 / 1000) * (minutes / 60) * 380 * 0.001 * 1000;
+  return (5 / 1000) * (minutes / 60) * 380 * 0.001 * 1000;
 }
 
 export function leaderboard(user: UserState): LeaderboardEntry[] {

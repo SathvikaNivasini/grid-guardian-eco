@@ -1,30 +1,23 @@
 import type { GridPoint, GridSnapshot, GridZone } from "./types";
 
-/**
- * Grid Service
- * -------------------------------------------------------------
- * Owns carbon-intensity data: current value, history, forecast.
- * `MockGridProvider` simulates a live feed. To use a real API,
- * implement `GridProvider` and swap it in `gridService`.
- */
-
 export interface GridProvider {
   label: string;
   simulated: boolean;
   snapshot(now: number): GridSnapshot;
 }
 
-export const ZONE_THRESHOLDS = { clean: 200, critical: 400 } as const;
+export const ZONE_THRESHOLDS = { clean: 150, high: 300, critical: 450 } as const;
 
 export function zoneOf(intensity: number): GridZone {
   if (intensity < ZONE_THRESHOLDS.clean) return "clean";
-  if (intensity < ZONE_THRESHOLDS.critical) return "moderate";
+  if (intensity < ZONE_THRESHOLDS.high) return "moderate";
+  if (intensity < ZONE_THRESHOLDS.critical) return "high";
   return "critical";
 }
 
 export const ZONE_META: Record<
   GridZone,
-  { label: string; note: string; token: "primary" | "warning" | "destructive" }
+  { label: string; note: string; token: "primary" | "warning" | "alert" | "destructive" }
 > = {
   clean: {
     label: "CLEAN GRID",
@@ -33,17 +26,28 @@ export const ZONE_META: Record<
   },
   moderate: {
     label: "MODERATE STRESS",
-    note: "Grid carbon intensity is currently elevated.",
+    note: "Grid carbon intensity is elevated. A good time to start thinking about a detox.",
     token: "warning",
   },
+  high: {
+    label: "HIGH STRESS",
+    note: "Fossil plants are ramping up. Detoxing now makes a real difference.",
+    token: "alert",
+  },
   critical: {
-    label: "CRITICAL STRESS",
-    note: "Fossil peaking plants are covering demand. Every watt counts.",
+    label: "GRID CRITICAL",
+    note: "Fossil peaking plants are covering demand. Every watt counts — maximum rewards active.",
     token: "destructive",
   },
 };
 
-/** Smooth pseudo-noise so the simulated feed is continuous, not jumpy. */
+export const ZONE_MULTIPLIER: Record<GridZone, number> = {
+  clean: 1,
+  moderate: 1.5,
+  high: 2,
+  critical: 3,
+};
+
 function noise(seedTime: number, scaleMinutes: number, seed: number) {
   const x = seedTime / (scaleMinutes * 60_000) + seed * 13.37;
   return (
@@ -51,7 +55,6 @@ function noise(seedTime: number, scaleMinutes: number, seed: number) {
   );
 }
 
-/** Daily shape: cleaner overnight/midday (solar), dirty at evening peak. */
 function dailyShape(t: number) {
   const d = new Date(t);
   const hour = d.getHours() + d.getMinutes() / 60;
@@ -70,6 +73,20 @@ export function simulatedIntensityAt(t: number): number {
 const HISTORY_HOURS = 8;
 const FORECAST_HOURS = 3;
 const STEP_MS = 15 * 60_000;
+
+function findBestWindow(
+  now: number,
+  intensityFn: (t: number) => number,
+  lookAheadMin = 180,
+) {
+  let best = { start: now, end: now + 25 * 60_000, value: -1 };
+  for (let m = 0; m <= lookAheadMin; m += 5) {
+    const start = now + m * 60_000;
+    const value = (intensityFn(start) + intensityFn(start + 25 * 60_000)) / 2;
+    if (value > best.value) best = { start, end: start + 25 * 60_000, value };
+  }
+  return { start: best.start, end: best.end };
+}
 
 class MockGridProvider implements GridProvider {
   label = "SIMULATED GRID DATA";
@@ -92,21 +109,12 @@ class MockGridProvider implements GridProvider {
     const hourAgo = simulatedIntensityAt(now - 3_600_000);
     const changePctVsHourAgo = Math.round(((intensity - hourAgo) / hourAgo) * 100);
 
-    // Best detox window = the dirtiest upcoming 25 minutes (highest reward).
-    let best = { start: now, end: now + 25 * 60_000, value: -1 };
-    for (let m = 0; m <= 180; m += 5) {
-      const start = now + m * 60_000;
-      const value =
-        (simulatedIntensityAt(start) + simulatedIntensityAt(start + 25 * 60_000)) / 2;
-      if (value > best.value) best = { start, end: start + 25 * 60_000, value };
-    }
-
     return {
       intensity,
       zone: zoneOf(intensity),
       changePctVsHourAgo,
       series,
-      bestWindow: { start: best.start, end: best.end },
+      bestWindow: findBestWindow(now, simulatedIntensityAt),
       providerLabel: this.label,
       simulated: this.simulated,
       updatedAt: now,
@@ -122,4 +130,100 @@ export function getGridSnapshot(now = Date.now()): GridSnapshot {
 
 export function formatClock(t: number) {
   return new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+interface CarbonIntensityEntry {
+  from: string;
+  to: string;
+  intensity: {
+    forecast: number;
+    actual: number | null;
+    index: string;
+  };
+}
+
+export async function fetchLiveGridData(region = "GB"): Promise<GridSnapshot | null> {
+  try {
+    const now = Date.now();
+    const [currentRes, dayRes] = await Promise.all([
+      fetch("https://api.carbonintensity.org.uk/intensity", { signal: AbortSignal.timeout(8000) }),
+      fetch(
+        `https://api.carbonintensity.org.uk/intensity/date/${new Date().toISOString().slice(0, 10)}`,
+        { signal: AbortSignal.timeout(8000) },
+      ),
+    ]);
+
+    if (!currentRes.ok || !dayRes.ok) return null;
+
+    const currentJson = (await currentRes.json()) as { data: CarbonIntensityEntry[] };
+    const dayJson = (await dayRes.json()) as { data: CarbonIntensityEntry[] };
+
+    const currentEntry = currentJson.data[0];
+    if (!currentEntry) return null;
+
+    const intensity = currentEntry.intensity.actual ?? currentEntry.intensity.forecast;
+
+    const series: GridPoint[] = [];
+    const dayData = dayJson.data;
+    const nowTime = now;
+
+    for (const entry of dayData) {
+      const t = new Date(entry.from).getTime();
+      const val = entry.intensity.actual ?? entry.intensity.forecast;
+      const kind: GridPoint["kind"] =
+        t > nowTime ? "forecast" : t === nowTime ? "now" : "history";
+      series.push({ t, intensity: val, kind });
+    }
+
+    const nowIdx = series.findIndex((p) => p.t >= nowTime);
+    if (nowIdx >= 0) {
+      const closest = series[nowIdx];
+      if (closest) closest.kind = "now";
+    }
+
+    for (let i = 0; i < series.length; i++) {
+      const point = series[i];
+      if (point && nowIdx >= 0 && i > nowIdx) {
+        point.kind = "forecast";
+      }
+    }
+
+    const hourAgoTime = now - 3_600_000;
+    const hourAgoEntry = series.reduce<GridPoint | null>((best, p) => {
+      if (p.t <= hourAgoTime && (!best || p.t > best.t)) return p;
+      return best;
+    }, null);
+    const hourAgoIntensity = hourAgoEntry?.intensity ?? intensity;
+    const changePctVsHourAgo =
+      hourAgoIntensity > 0 ? Math.round(((intensity - hourAgoIntensity) / hourAgoIntensity) * 100) : 0;
+
+    const forecastPoints = series.filter((p) => p.kind === "forecast");
+    let bestWindow = { start: now, end: now + 25 * 60_000 };
+    if (forecastPoints.length >= 2) {
+      let bestVal = -1;
+      for (let i = 0; i < forecastPoints.length - 1; i++) {
+        const fp = forecastPoints[i]!;
+        const fpNext = forecastPoints[i + 1];
+        const val = fpNext ? (fp.intensity + fpNext.intensity) / 2 : fp.intensity;
+        if (val > bestVal) {
+          bestVal = val;
+          bestWindow = { start: fp.t, end: fpNext?.t ?? fp.t + 30 * 60_000 };
+        }
+      }
+    }
+
+    return {
+      intensity,
+      zone: zoneOf(intensity),
+      changePctVsHourAgo,
+      series,
+      bestWindow,
+      providerLabel: "UK NATIONAL GRID (LIVE)",
+      simulated: false,
+      updatedAt: now,
+      region,
+    };
+  } catch {
+    return null;
+  }
 }

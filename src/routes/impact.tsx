@@ -14,6 +14,7 @@ import {
 import { useGuardian } from "../state/guardian";
 import { AnimatedNumber } from "../components/AnimatedNumber";
 import { bestSession, dayKey, totalAvoidedCo2Kg } from "../services/userService";
+import { estimateAvoidedWh, DEFAULT_DEVICE_WATTS } from "../services/rewardEngine";
 
 export const Route = createFileRoute("/impact")({
   head: () => ({
@@ -87,8 +88,8 @@ function ImpactPage() {
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        *Estimated using device-energy assumptions (12 W avoided load) and the grid intensity
-        observed during your sessions.
+        *Estimated using {user.settings?.devicePowerWatts ?? DEFAULT_DEVICE_WATTS} W device power assumption
+        and the grid intensity observed during your sessions. Configurable in Settings.
       </p>
 
       <section className="glass p-5 sm:p-6">
