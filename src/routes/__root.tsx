@@ -131,34 +131,48 @@ function AuthGate() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div
+        className="flex min-h-screen items-center justify-center bg-background"
+        style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0a0a0a", color: "#fff" }}
+      >
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #22c55e", borderTopColor: "transparent", animation: "spin 1s linear infinite" }}
+        />
       </div>
     );
   }
 
   if (!user && !isAuthPage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm space-y-6 text-center animate-rise">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-accent">
-            <svg className="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div
+        className="flex min-h-screen items-center justify-center bg-background px-4"
+        style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0a0a0a", color: "#e5e5e5", fontFamily: "system-ui, -apple-system, sans-serif", padding: "0 1rem" }}
+      >
+        <div className="w-full max-w-sm space-y-6 text-center animate-rise" style={{ maxWidth: 384, textAlign: "center" }}>
+          <div
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-accent"
+            style={{ margin: "0 auto", display: "flex", width: 80, height: 80, alignItems: "center", justifyContent: "center", borderRadius: 16, background: "#1a2e1a" }}
+          >
+            <svg width="40" height="40" className="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">GridGuardian</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-semibold text-foreground" style={{ fontSize: 24, fontWeight: 600, marginTop: 24, color: "#fff" }}>GridGuardian</h1>
+          <p className="text-sm text-muted-foreground" style={{ fontSize: 14, color: "#999", marginTop: 8 }}>
             Turn live electricity-grid data into a digital detox game.
             Sign in to start protecting the grid.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center" style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24, alignItems: "center" }}>
             <Link
               to="/login"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "10px 24px", fontSize: 14, fontWeight: 600, borderRadius: 12, background: "#22c55e", color: "#000", textDecoration: "none" }}
             >
               Sign in
             </Link>
             <Link
               to="/signup"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "10px 24px", fontSize: 14, fontWeight: 500, borderRadius: 12, border: "1px solid #333", color: "#e5e5e5", textDecoration: "none" }}
             >
               Create account
             </Link>
