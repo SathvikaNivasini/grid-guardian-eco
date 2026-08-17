@@ -114,6 +114,30 @@ function BuildingArt({ kind, x, y }: { kind: string; x: number; y: number }) {
           <rect x="-6" y="6" width="12" height="6" fill="var(--color-muted)" />
         </>,
       );
+    case "garden":
+      return g(
+        <>
+          <ellipse cx="0" cy="6" rx="30" ry="14" fill="var(--color-primary)" opacity="0.25" />
+          {[-14, 0, 14].map((dx) => (
+            <g key={dx} transform={`translate(${dx},0)`}>
+              <rect x="-1.5" y="-4" width="3" height="8" fill="var(--color-muted)" />
+              <circle cx="0" cy="-6" r="6" fill="var(--color-primary)" opacity="0.6" />
+              <circle cx="-2" cy="-8" r="3" fill="var(--color-warning)" opacity="0.7" />
+            </g>
+          ))}
+        </>,
+      );
+    case "bike":
+      return g(
+        <>
+          <path d="M-30,2 Q0,-12 30,2" stroke="var(--color-muted)" strokeWidth="5" fill="none" opacity="0.6" />
+          <path d="M-30,2 Q0,-12 30,2" stroke="var(--color-primary)" strokeWidth="1" strokeDasharray="4 6" fill="none" opacity="0.8" />
+          <circle cx="-10" cy="-4" r="6" fill="none" stroke="var(--color-secondary)" strokeWidth="2" />
+          <circle cx="10" cy="-4" r="6" fill="none" stroke="var(--color-secondary)" strokeWidth="2" />
+          <line x1="-10" y1="-4" x2="0" y2="-10" stroke="var(--color-secondary)" strokeWidth="1.5" />
+          <line x1="0" y1="-10" x2="10" y2="-4" stroke="var(--color-secondary)" strokeWidth="1.5" />
+        </>,
+      );
     default:
       return g(<rect x="-16" y="-20" width="32" height="26" fill="var(--color-surface-2)" />);
   }

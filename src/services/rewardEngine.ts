@@ -1,25 +1,19 @@
-/**
- * Reward Engine
- * -------------------------------------------------------------
- * Pure functions: duration base -> grid multiplier -> streak bonus.
- * The UI never hardcodes a reward; it always renders these results.
- */
+import { zoneOf, ZONE_MULTIPLIER } from "./gridService";
 
 export const DURATION_OPTIONS = [5, 10, 15, 30] as const;
 export type DurationMin = (typeof DURATION_OPTIONS)[number];
+
+export const DEFAULT_DEVICE_WATTS = 5;
 
 const BASE_BY_DURATION: Record<number, number> = { 5: 40, 10: 90, 15: 150, 30: 350 };
 
 export function baseCoins(durationMin: number): number {
   if (BASE_BY_DURATION[durationMin] != null) return BASE_BY_DURATION[durationMin];
-  // Linear-ish fallback for arbitrary durations.
   return Math.round(durationMin * 11);
 }
 
 export function gridMultiplier(intensity: number): number {
-  if (intensity < 200) return 1;
-  if (intensity < 400) return 1.5;
-  return 3;
+  return ZONE_MULTIPLIER[zoneOf(intensity)];
 }
 
 export function streakBonus(streakDays: number): number {
@@ -29,12 +23,17 @@ export function streakBonus(streakDays: number): number {
   return 0;
 }
 
-/** Watts assumed saved by putting a device down, used for CO2 estimation. */
-const ASSUMED_DEVICE_WATTS = 12;
-
-export function estimateAvoidedCo2Kg(durationMin: number, intensity: number): number {
-  const kWh = (ASSUMED_DEVICE_WATTS / 1000) * (durationMin / 60);
+export function estimateAvoidedCo2Kg(
+  durationMin: number,
+  intensity: number,
+  deviceWatts = DEFAULT_DEVICE_WATTS,
+): number {
+  const kWh = (deviceWatts / 1000) * (durationMin / 60);
   return (kWh * intensity) / 1000;
+}
+
+export function estimateAvoidedWh(durationMin: number, deviceWatts = DEFAULT_DEVICE_WATTS): number {
+  return deviceWatts * (durationMin / 60);
 }
 
 export interface RewardBreakdown {
@@ -48,6 +47,7 @@ export interface RewardBreakdown {
   coins: number;
   impactPoints: number;
   avoidedCo2Kg: number;
+  avoidedWh: number;
   formula: string;
 }
 
@@ -55,7 +55,9 @@ export function calculateReward(input: {
   durationMin: number;
   intensity: number;
   streakDays: number;
+  deviceWatts?: number;
 }): RewardBreakdown {
+  const dw = input.deviceWatts ?? DEFAULT_DEVICE_WATTS;
   const base = baseCoins(input.durationMin);
   const gm = gridMultiplier(input.intensity);
   const sb = streakBonus(input.streakDays);
@@ -64,8 +66,8 @@ export function calculateReward(input: {
   const coins = Math.round(afterGrid) + streakCoins;
   const impactPoints = Math.round(input.durationMin * 3 * gm);
   const formula =
-    `${base} base coins × ${gm.toFixed(1)} grid multiplier` +
-    (sb > 0 ? ` + ${Math.round(sb * 100)}% streak bonus` : "") +
+    `${base} base × ${gm.toFixed(1)} grid` +
+    (sb > 0 ? ` + ${Math.round(sb * 100)}% streak` : "") +
     ` = ${coins} Eco-Coins`;
 
   return {
@@ -78,7 +80,8 @@ export function calculateReward(input: {
     streakCoins,
     coins,
     impactPoints,
-    avoidedCo2Kg: estimateAvoidedCo2Kg(input.durationMin, input.intensity),
+    avoidedCo2Kg: estimateAvoidedCo2Kg(input.durationMin, input.intensity, dw),
+    avoidedWh: estimateAvoidedWh(input.durationMin, dw),
     formula,
   };
 }

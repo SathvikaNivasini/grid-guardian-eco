@@ -7,7 +7,7 @@ import { AnimatedNumber } from "../components/AnimatedNumber";
 import { formatCountdown } from "../services/detoxService";
 import { DURATION_OPTIONS } from "../services/rewardEngine";
 import { calculateReward } from "../services/rewardEngine";
-import { ZONE_META } from "../services/gridService";
+import { ZONE_META, ZONE_MULTIPLIER } from "../services/gridService";
 import { Confetti } from "../components/Confetti";
 
 export const Route = createFileRoute("/shield")({
@@ -46,12 +46,13 @@ function ShieldPage() {
   const navigate = useNavigate();
 
   const intensity = grid?.intensity ?? 0;
+  const dw = user.settings?.devicePowerWatts ?? 5;
   const previews = useMemo(
     () =>
       DURATION_OPTIONS.map((d) =>
-        calculateReward({ durationMin: d, intensity, streakDays: user.streakDays }),
+        calculateReward({ durationMin: d, intensity, streakDays: user.streakDays, deviceWatts: dw }),
       ),
-    [intensity, user.streakDays],
+    [intensity, user.streakDays, dw],
   );
 
   useEffect(() => {
@@ -62,10 +63,15 @@ function ShieldPage() {
     return <CompleteView />;
   }
 
+  const isUrgent = grid && (grid.zone === "high" || grid.zone === "critical");
+  const zoneMultiplier = grid ? ZONE_MULTIPLIER[grid.zone] : 1;
+
   if (!session) {
     return (
       <div className="mx-auto max-w-3xl animate-rise">
-        <h1 className="text-3xl font-semibold sm:text-4xl">Deploy your shield</h1>
+        <h1 className="text-3xl font-semibold sm:text-4xl">
+          {isUrgent ? "Grid Emergency — Deploy Now" : "Deploy your shield"}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Choose how long you'll stay off the device. Rewards scale with how dirty the grid is
           right now
@@ -73,16 +79,38 @@ function ShieldPage() {
           .
         </p>
 
+        {isUrgent && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">
+                {zoneMultiplier}× Crisis Bonus Active
+              </p>
+              <p className="text-xs text-muted-foreground">
+                The grid is under heavy carbon stress. Detoxing now earns maximum rewards.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {previews.map((r) => (
             <button
               key={r.durationMin}
               onClick={() => startSession(r.durationMin)}
-              className="glass glass-hover group p-5 text-left active:scale-[0.99]"
+              className={`glass glass-hover group p-5 text-left active:scale-[0.99] ${
+                isUrgent ? "border-destructive/20" : ""
+              }`}
             >
               <div className="flex items-baseline justify-between">
                 <span className="num text-2xl font-semibold">{r.durationMin} min</span>
-                <span className="num rounded-full border border-border px-2.5 py-1 text-xs text-secondary">
+                <span className={`num rounded-full border px-2.5 py-1 text-xs ${
+                  r.gridMultiplier >= 3
+                    ? "border-destructive/30 text-destructive"
+                    : r.gridMultiplier >= 2
+                      ? "border-alert/30 text-alert"
+                      : "border-border text-secondary"
+                }`}>
                   {r.gridMultiplier.toFixed(1)}×
                 </span>
               </div>
@@ -90,13 +118,16 @@ function ShieldPage() {
                 +{r.coins} Eco-Coins
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">{r.formula}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                ~{r.avoidedWh.toFixed(1)} Wh · ~{(r.avoidedCo2Kg * 1000).toFixed(1)} g CO₂e avoided
+              </p>
             </button>
           ))}
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground">
           This is a web MVP: switching tabs or leaving the page counts as an interruption. It
-          cannot detect every form of device usage.
+          cannot detect every form of device usage. Estimated device power: {dw} W (configurable in settings).
         </p>
       </div>
     );
@@ -146,7 +177,9 @@ function ShieldPage() {
           </div>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          {interrupted ? "Your detox session was interrupted." : "Keep the shield alive."}
+          {interrupted
+            ? "Your detox session was interrupted."
+            : "Stay away from distracting apps until the shield reaches 100%."}
         </p>
       </div>
 
@@ -232,9 +265,10 @@ function MetricTile({
 }
 
 function CompleteView() {
-  const { lastResult, clearResult } = useGuardian();
+  const { lastResult, clearResult, user } = useGuardian();
   if (!lastResult) return null;
   const { reward, durationMin } = lastResult;
+  const dw = user.settings?.devicePowerWatts ?? 5;
 
   return (
     <div className="relative flex min-h-[70vh] flex-col items-center justify-center text-center">
@@ -255,9 +289,9 @@ function CompleteView() {
         </div>
         <div className="glass p-4">
           <p className="num text-2xl font-semibold text-secondary">
-            +<AnimatedNumber value={reward.impactPoints} />
+            {reward.avoidedWh.toFixed(1)} Wh
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">Impact Points</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Energy avoided (est.)</p>
         </div>
         <div className="glass p-4">
           <p className="num text-2xl font-semibold text-warning">
@@ -267,10 +301,18 @@ function CompleteView() {
         </div>
       </div>
 
+      <div className="mt-4 glass w-full max-w-xl p-4">
+        <p className="text-xs text-muted-foreground">
+          Estimated impact: {reward.avoidedWh.toFixed(2)} Wh electricity avoided ×{" "}
+          {reward.intensity} gCO₂e/kWh = ~{(reward.avoidedCo2Kg * 1000).toFixed(1)} g CO₂e
+        </p>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          Based on {dw} W estimated device power. This is an estimate — the real value depends on your
+          specific device and usage.
+        </p>
+      </div>
+
       <p className="num mt-5 max-w-md text-xs text-muted-foreground">{reward.formula}</p>
-      <p className="mt-1 max-w-md text-xs text-muted-foreground">
-        Estimated avoided CO₂ this session: {reward.avoidedCo2Kg.toFixed(3)} kg
-      </p>
 
       <Link
         to="/city"

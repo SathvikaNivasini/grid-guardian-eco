@@ -1,10 +1,5 @@
-import type { UserState } from "./types";
-
-/**
- * User Service
- * -------------------------------------------------------------
- * Profile, streak, level and derived statistics.
- */
+import type { UserSettings, UserState } from "./types";
+import { DEFAULT_DEVICE_WATTS } from "./rewardEngine";
 
 export interface LevelDef {
   level: number;
@@ -47,7 +42,6 @@ export function dayKey(t: number) {
   return new Date(t).toISOString().slice(0, 10);
 }
 
-/** Recompute streak from session history (consecutive calendar days). */
 export function computeStreak(sessions: UserState["sessions"], now = Date.now()) {
   if (sessions.length === 0) return 0;
   const days = new Set(sessions.map((s) => dayKey(s.endedAt)));
@@ -62,6 +56,14 @@ export function computeStreak(sessions: UserState["sessions"], now = Date.now())
   return streak;
 }
 
+export function defaultSettings(): UserSettings {
+  return {
+    devicePowerWatts: DEFAULT_DEVICE_WATTS,
+    region: "GB",
+    gridSource: "auto",
+  };
+}
+
 export function initialUser(): UserState {
   return {
     name: "Guardian",
@@ -72,5 +74,8 @@ export function initialUser(): UserState {
     sessions: [],
     buildings: [],
     claimedChallenges: [],
+    settings: defaultSettings(),
+    dailyMissionDate: "",
+    claimedDailyMissions: [],
   };
 }

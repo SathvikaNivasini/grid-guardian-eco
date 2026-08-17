@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatClock } from "../services/gridService";
+import { formatClock, ZONE_THRESHOLDS } from "../services/gridService";
 import type { GridSnapshot } from "../services/types";
 
 interface Row {
@@ -55,7 +55,7 @@ export function GridChart({ grid }: { grid: GridSnapshot }) {
         <div>
           <h2 className="text-base font-semibold">Carbon intensity timeline</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Last 8 hours, plus 3-hour projection · gCO₂e/kWh
+            {grid.simulated ? "Simulated" : "Live"} data · gCO₂e/kWh
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
@@ -87,13 +87,29 @@ export function GridChart({ grid }: { grid: GridSnapshot }) {
 
             <ReferenceArea
               y1={0}
-              y2={200}
+              y2={ZONE_THRESHOLDS.clean}
               fill="var(--color-primary)"
               fillOpacity={0.05}
               ifOverflow="extendDomain"
             />
-            <ReferenceArea y1={200} y2={400} fill="var(--color-warning)" fillOpacity={0.05} />
-            <ReferenceArea y1={400} y2={700} fill="var(--color-destructive)" fillOpacity={0.06} />
+            <ReferenceArea
+              y1={ZONE_THRESHOLDS.clean}
+              y2={ZONE_THRESHOLDS.high}
+              fill="var(--color-warning)"
+              fillOpacity={0.05}
+            />
+            <ReferenceArea
+              y1={ZONE_THRESHOLDS.high}
+              y2={ZONE_THRESHOLDS.critical}
+              fill="var(--color-alert)"
+              fillOpacity={0.05}
+            />
+            <ReferenceArea
+              y1={ZONE_THRESHOLDS.critical}
+              y2={700}
+              fill="var(--color-destructive)"
+              fillOpacity={0.06}
+            />
 
             <CartesianGrid stroke="var(--color-border)" vertical={false} />
             <XAxis

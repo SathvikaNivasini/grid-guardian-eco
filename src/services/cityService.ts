@@ -70,6 +70,24 @@ export const BUILDING_CATALOG: CityBuildingSpec[] = [
     pollution: -10,
     kind: "storage",
   },
+  {
+    id: "garden",
+    name: "Community Garden",
+    cost: 120,
+    blurb: "Local food production and community gathering space.",
+    cleanEnergy: 2,
+    pollution: -15,
+    kind: "garden",
+  },
+  {
+    id: "bike",
+    name: "Bike Infrastructure",
+    cost: 200,
+    blurb: "Protected lanes and shared bikes replace car trips.",
+    cleanEnergy: 6,
+    pollution: -25,
+    kind: "bike",
+  },
 ];
 
 export function specById(id: string) {

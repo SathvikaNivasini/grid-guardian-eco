@@ -10,10 +10,10 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { getGridSnapshot } from "../services/gridService";
-import type { GridSnapshot, UserState } from "../services/types";
+import { getGridSnapshot, fetchLiveGridData } from "../services/gridService";
+import type { GridSnapshot, UserSettings, UserState } from "../services/types";
 import { canAfford, specById } from "../services/cityService";
-import { computeStreak, initialUser } from "../services/userService";
+import { computeStreak, defaultSettings, initialUser, dayKey } from "../services/userService";
 import { calculateReward, type RewardBreakdown } from "../services/rewardEngine";
 import {
   averageIntensity,
@@ -26,6 +26,7 @@ import {
 
 const STORAGE_KEY = "gridguardian.state.v1";
 const GRID_REFRESH_MS = 30_000;
+const LIVE_FETCH_MS = 120_000;
 
 interface GuardianContextValue {
   hydrated: boolean;
@@ -39,6 +40,8 @@ interface GuardianContextValue {
   clearResult: () => void;
   buildBuilding: (specId: string) => void;
   claimChallenge: (id: string, coins: number) => void;
+  claimDailyMission: (id: string, coins: number) => void;
+  updateSettings: (patch: Partial<UserSettings>) => void;
   resetProgress: () => void;
   remaining: number;
   progress: number;
@@ -52,7 +55,12 @@ function loadUser(): UserState | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as UserState;
-    return { ...initialUser(), ...parsed };
+    const merged = { ...initialUser(), ...parsed };
+    if (!merged.settings) merged.settings = defaultSettings();
+    else merged.settings = { ...defaultSettings(), ...merged.settings };
+    if (!merged.dailyMissionDate) merged.dailyMissionDate = "";
+    if (!merged.claimedDailyMissions) merged.claimedDailyMissions = [];
+    return merged;
   } catch {
     return null;
   }
@@ -67,11 +75,21 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     useState<{ reward: RewardBreakdown; durationMin: number } | null>(null);
   const [tick, setTick] = useState(0);
   const gridRef = useRef<GridSnapshot | null>(null);
+  const liveGridRef = useRef<GridSnapshot | null>(null);
 
-  // Hydrate persisted state on the client only (avoids SSR mismatch).
   useEffect(() => {
     const stored = loadUser();
     if (stored) setUser({ ...stored, streakDays: computeStreak(stored.sessions) });
+
+    const today = dayKey(Date.now());
+    if (stored && stored.dailyMissionDate !== today) {
+      setUser((prev) => ({
+        ...prev,
+        dailyMissionDate: today,
+        claimedDailyMissions: [],
+      }));
+    }
+
     const snap = getGridSnapshot();
     gridRef.current = snap;
     setGrid(snap);
@@ -80,21 +98,48 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
+
+    const source = user.settings?.gridSource ?? "auto";
+    if (source === "simulation") return;
+
+    let cancelled = false;
+    const doFetch = async () => {
+      const region = user.settings?.region ?? "GB";
+      const live = await fetchLiveGridData(region);
+      if (cancelled) return;
+      if (live) {
+        liveGridRef.current = live;
+        gridRef.current = live;
+        setGrid(live);
+      }
+    };
+
+    void doFetch();
+    const id = setInterval(() => void doFetch(), LIVE_FETCH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [hydrated, user.settings?.gridSource, user.settings?.region]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
   }, [user, hydrated]);
 
-  // Simulated live grid feed.
   useEffect(() => {
     if (!hydrated) return;
+    const source = user.settings?.gridSource ?? "auto";
+    if (source !== "simulation" && liveGridRef.current) return;
+
     const id = setInterval(() => {
       const snap = getGridSnapshot();
       gridRef.current = snap;
       setGrid(snap);
     }, GRID_REFRESH_MS);
     return () => clearInterval(id);
-  }, [hydrated]);
+  }, [hydrated, user.settings?.gridSource]);
 
-  // Countdown loop.
   useEffect(() => {
     if (!session || session.status !== "running") return;
     const id = setInterval(() => {
@@ -122,7 +167,6 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [session?.status, session?.id]);
 
-  // Interruption detection: leaving the tab pauses the shield.
   useEffect(() => {
     if (!session || session.status !== "running") return;
     const onHidden = () => {
@@ -140,16 +184,17 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   }, [session?.status, session?.id]);
 
   const completedRef = useRef<string | null>(null);
-  // Award on completion.
   useEffect(() => {
     if (!session || session.status !== "complete") return;
     if (completedRef.current === session.id) return;
     completedRef.current = session.id;
 
+    const dw = user.settings?.devicePowerWatts ?? 5;
     const reward = calculateReward({
       durationMin: session.durationMin,
       intensity: averageIntensity(session) || (gridRef.current?.intensity ?? 300),
       streakDays: user.streakDays,
+      deviceWatts: dw,
     });
     const record = finalizeSession(session, reward);
     setUser((prev) => {
@@ -235,6 +280,26 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const claimDailyMission = useCallback((id: string, coins: number) => {
+    setUser((prev) => {
+      if (prev.claimedDailyMissions.includes(id)) return prev;
+      toast.success("Mission complete!", { description: `+${coins} Eco-Coins earned.` });
+      return {
+        ...prev,
+        coins: prev.coins + coins,
+        claimedDailyMissions: [...prev.claimedDailyMissions, id],
+      };
+    });
+  }, []);
+
+  const updateSettings = useCallback((patch: Partial<UserSettings>) => {
+    setUser((prev) => ({
+      ...prev,
+      settings: { ...(prev.settings ?? defaultSettings()), ...patch },
+    }));
+    toast.success("Settings updated");
+  }, []);
+
   const resetProgress = useCallback(() => {
     setUser(initialUser());
     setSession(null);
@@ -243,11 +308,13 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<GuardianContextValue>(() => {
+    const dw = user.settings?.devicePowerWatts ?? 5;
     const projected = session
       ? calculateReward({
           durationMin: session.durationMin,
           intensity: averageIntensity(session) || (grid?.intensity ?? 300),
           streakDays: user.streakDays,
+          deviceWatts: dw,
         })
       : null;
     return {
@@ -262,6 +329,8 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       clearResult,
       buildBuilding,
       claimChallenge,
+      claimDailyMission,
+      updateSettings,
       resetProgress,
       remaining: session ? remainingMs(session) : 0,
       progress: session ? progressOf(session) : 0,

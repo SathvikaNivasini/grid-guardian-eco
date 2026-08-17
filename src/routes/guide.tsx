@@ -38,7 +38,7 @@ const STEPS = [
   {
     icon: Coins,
     title: "3. Earn Eco-Coins",
-    body: "Coins = base reward for the length × grid multiplier for how dirty the grid was + streak bonus. Detoxing during a dirty hour is worth up to 3× more, because you prevented more pollution.",
+    body: "Coins = base reward for the length × grid multiplier for how dirty the grid was + streak bonus. The grid has four zones — clean (1×), moderate (1.5×), high (2×) and critical (3×). Detoxing during a critical hour is worth 3× more.",
     plain: "Same 10 minutes can be worth 90 coins or 270 coins. Timing is the whole game.",
   },
   {
@@ -64,11 +64,11 @@ const STEPS = [
 const GLOSSARY = [
   {
     term: "Grid carbon intensity (gCO₂e/kWh)",
-    def: "How much CO₂ is released for each unit of electricity right now. Under 200 is clean, 200–400 is average, above 400 is dirty.",
+    def: "How much CO₂ is released for each unit of electricity right now. Under 150 is clean, 150–300 is moderate, 300–450 is high, above 450 is critical.",
   },
   {
     term: "Grid multiplier",
-    def: "Your reward boost based on that number: 1× when clean, 1.5× when average, 3× when dirty.",
+    def: "Your reward boost based on that number: 1× when clean, 1.5× moderate, 2× high, 3× critical.",
   },
   {
     term: "Eco-Coins",
@@ -80,7 +80,7 @@ const GLOSSARY = [
   },
   {
     term: "Avoided CO₂",
-    def: "An estimate of the pollution that never happened, based on a 12 W device and the grid intensity while you were offline.",
+    def: "An estimate of the pollution that never happened, based on your configured device power (default 5 W) and the grid intensity while you were offline.",
   },
   {
     term: "Detox minutes",
@@ -129,8 +129,8 @@ function GuidePage() {
       <section className="glass p-5 sm:p-6">
         <h2 className="text-base font-semibold">The fastest way to win</h2>
         <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
-          <li>1. Wait for the grid number to go red (usually early evening).</li>
-          <li>2. Run a 30-minute shield — that is the biggest base reward at 3×.</li>
+          <li>1. Wait for the grid to hit high or critical (usually early evening).</li>
+          <li>2. Run a 30-minute shield — that is the biggest base reward at 2–3×.</li>
           <li>3. Do one short shield every single day to hold the streak bonus.</li>
           <li>4. Spend coins on wind and solar first; they give the most clean energy per coin.</li>
         </ol>
