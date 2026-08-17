@@ -10,9 +10,11 @@ import {
   Medal,
   Award,
   BookOpen,
+  LogOut,
 } from "lucide-react";
 
 import { useGuardian } from "../state/guardian";
+import { useAuth } from "../state/auth";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { levelFor } from "../services/userService";
 
@@ -43,6 +45,7 @@ function itemClass(active: boolean) {
 
 export function Sidebar() {
   const { user } = useGuardian();
+  const { user: authUser, signOut } = useAuth();
   const { current } = levelFor(user.detoxMinutes);
 
   return (
@@ -101,7 +104,22 @@ export function Sidebar() {
             {label}
           </Link>
         ))}
+        {authUser && (
+          <button
+            onClick={() => void signOut()}
+            className={itemClass(false)}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        )}
       </div>
+
+      {authUser && (
+        <div className="px-2 text-[11px] text-muted-foreground truncate">
+          {authUser.user_metadata?.["display_name"] as string ?? authUser.email}
+        </div>
+      )}
     </aside>
   );
 }

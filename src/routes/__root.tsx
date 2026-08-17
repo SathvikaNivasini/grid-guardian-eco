@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useMatchRoute,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthProvider, useAuth } from "../state/auth";
 import { GuardianProvider } from "../state/guardian";
 import { Sidebar, MobileNav, MobileTopBar } from "../components/Nav";
 import { Toaster } from "../components/ui/sonner";
@@ -122,23 +124,77 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthGate() {
+  const { user, loading } = useAuth();
+  const matchRoute = useMatchRoute();
+  const isAuthPage = matchRoute({ to: "/login" }) || matchRoute({ to: "/signup" });
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user && !isAuthPage) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6 text-center animate-rise">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-accent">
+            <svg className="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground">GridGuardian</h1>
+          <p className="text-sm text-muted-foreground">
+            Turn live electricity-grid data into a digital detox game.
+            Sign in to start protecting the grid.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/signup"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Create account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthPage) {
+    return <Outlet />;
+  }
+
+  return (
+    <GuardianProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <Sidebar />
+        <MobileTopBar />
+        <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 lg:pl-8 lg:pr-8 lg:pb-12 lg:ml-64 lg:max-w-[calc(72rem-16rem)]">
+          <Outlet />
+        </main>
+        <MobileNav />
+      </div>
+    </GuardianProvider>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GuardianProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          <Sidebar />
-          <MobileTopBar />
-          <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 lg:pl-8 lg:pr-8 lg:pb-12 lg:ml-64 lg:max-w-[calc(72rem-16rem)]">
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-          </main>
-          <MobileNav />
-        </div>
+      <AuthProvider>
+        <AuthGate />
         <Toaster />
-      </GuardianProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

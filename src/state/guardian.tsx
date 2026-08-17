@@ -23,10 +23,13 @@ import {
   remainingMs,
   type ActiveSession,
 } from "../services/detoxService";
+import { useAuth } from "./auth";
+import { supabase } from "../lib/supabase";
 
 const STORAGE_KEY = "gridguardian.state.v1";
 const GRID_REFRESH_MS = 30_000;
 const LIVE_FETCH_MS = 120_000;
+const CLOUD_SAVE_DEBOUNCE_MS = 3_000;
 
 interface GuardianContextValue {
   hydrated: boolean;
@@ -50,23 +53,52 @@ interface GuardianContextValue {
 
 const GuardianContext = createContext<GuardianContextValue | null>(null);
 
-function loadUser(): UserState | null {
+function migrateUser(raw: unknown): UserState {
+  const parsed = raw as UserState;
+  const merged = { ...initialUser(), ...parsed };
+  if (!merged.settings) merged.settings = defaultSettings();
+  else merged.settings = { ...defaultSettings(), ...merged.settings };
+  if (!merged.dailyMissionDate) merged.dailyMissionDate = "";
+  if (!merged.claimedDailyMissions) merged.claimedDailyMissions = [];
+  return merged;
+}
+
+function loadUserLocal(): UserState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as UserState;
-    const merged = { ...initialUser(), ...parsed };
-    if (!merged.settings) merged.settings = defaultSettings();
-    else merged.settings = { ...defaultSettings(), ...merged.settings };
-    if (!merged.dailyMissionDate) merged.dailyMissionDate = "";
-    if (!merged.claimedDailyMissions) merged.claimedDailyMissions = [];
-    return merged;
+    return migrateUser(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
+async function loadUserCloud(userId: string): Promise<UserState | null> {
+  try {
+    const { data, error } = await supabase
+      .from("guardian_state")
+      .select("data")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return migrateUser(data.data);
+  } catch {
+    return null;
+  }
+}
+
+async function saveUserCloud(userId: string, state: UserState): Promise<void> {
+  try {
+    await supabase
+      .from("guardian_state")
+      .upsert({ id: userId, data: state }, { onConflict: "id" });
+  } catch {
+    // silent fail — localStorage is the fallback
+  }
+}
+
 export function GuardianProvider({ children }: { children: ReactNode }) {
+  const { user: authUser } = useAuth();
   const [hydrated, setHydrated] = useState(false);
   const [user, setUser] = useState<UserState>(() => initialUser());
   const [grid, setGrid] = useState<GridSnapshot | null>(null);
@@ -76,25 +108,61 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
   const gridRef = useRef<GridSnapshot | null>(null);
   const liveGridRef = useRef<GridSnapshot | null>(null);
+  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevAuthId = useRef<string | null>(null);
 
   useEffect(() => {
-    const stored = loadUser();
-    if (stored) setUser({ ...stored, streakDays: computeStreak(stored.sessions) });
+    let cancelled = false;
 
-    const today = dayKey(Date.now());
-    if (stored && stored.dailyMissionDate !== today) {
-      setUser((prev) => ({
-        ...prev,
-        dailyMissionDate: today,
-        claimedDailyMissions: [],
-      }));
-    }
+    const hydrate = async () => {
+      const authId = authUser?.id ?? null;
+      const authName =
+        (authUser?.user_metadata?.["display_name"] as string | undefined) ??
+        authUser?.email?.split("@")[0] ??
+        "Guardian";
 
-    const snap = getGridSnapshot();
-    gridRef.current = snap;
-    setGrid(snap);
-    setHydrated(true);
-  }, []);
+      let loaded: UserState | null = null;
+
+      if (authId) {
+        loaded = await loadUserCloud(authId);
+      }
+
+      if (!loaded) {
+        loaded = loadUserLocal();
+      }
+
+      if (cancelled) return;
+
+      if (loaded) {
+        loaded.name = loaded.name || authName;
+        loaded.streakDays = computeStreak(loaded.sessions);
+        setUser(loaded);
+
+        if (authId && loaded) {
+          void saveUserCloud(authId, loaded);
+        }
+      } else {
+        setUser({ ...initialUser(), name: authName });
+      }
+
+      const today = dayKey(Date.now());
+      setUser((prev) => {
+        if (prev.dailyMissionDate !== today) {
+          return { ...prev, dailyMissionDate: today, claimedDailyMissions: [] };
+        }
+        return prev;
+      });
+
+      const snap = getGridSnapshot();
+      gridRef.current = snap;
+      setGrid(snap);
+      setHydrated(true);
+      prevAuthId.current = authId;
+    };
+
+    void hydrate();
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -125,7 +193,14 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  }, [user, hydrated]);
+
+    if (authUser?.id) {
+      if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+      cloudSaveTimer.current = setTimeout(() => {
+        void saveUserCloud(authUser.id, user);
+      }, CLOUD_SAVE_DEBOUNCE_MS);
+    }
+  }, [user, hydrated, authUser?.id]);
 
   useEffect(() => {
     if (!hydrated) return;
