@@ -24,12 +24,10 @@ import {
   type ActiveSession,
 } from "../services/detoxService";
 import { useAuth } from "./auth";
-import { supabase } from "../lib/supabase";
 
 const STORAGE_KEY = "gridguardian.state.v1";
 const GRID_REFRESH_MS = 30_000;
 const LIVE_FETCH_MS = 120_000;
-const CLOUD_SAVE_DEBOUNCE_MS = 3_000;
 
 interface GuardianContextValue {
   hydrated: boolean;
@@ -73,30 +71,6 @@ function loadUserLocal(): UserState | null {
   }
 }
 
-async function loadUserCloud(userId: string): Promise<UserState | null> {
-  try {
-    const { data, error } = await supabase
-      .from("guardian_state")
-      .select("data")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error || !data) return null;
-    return migrateUser(data.data);
-  } catch {
-    return null;
-  }
-}
-
-async function saveUserCloud(userId: string, state: UserState): Promise<void> {
-  try {
-    await supabase
-      .from("guardian_state")
-      .upsert({ id: userId, data: state }, { onConflict: "id" });
-  } catch {
-    // silent fail — localStorage is the fallback
-  }
-}
-
 export function GuardianProvider({ children }: { children: ReactNode }) {
   const { user: authUser } = useAuth();
   const [hydrated, setHydrated] = useState(false);
@@ -108,61 +82,39 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
   const gridRef = useRef<GridSnapshot | null>(null);
   const liveGridRef = useRef<GridSnapshot | null>(null);
-  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevAuthId = useRef<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const authId = authUser?.id ?? null;
+    const authName =
+      authUser?.name ??
+      authUser?.username ??
+      "Guardian";
 
-    const hydrate = async () => {
-      const authId = authUser?.id ?? null;
-      const authName =
-        (authUser?.user_metadata?.["display_name"] as string | undefined) ??
-        authUser?.email?.split("@")[0] ??
-        "Guardian";
+    let loaded = loadUserLocal();
 
-      let loaded: UserState | null = null;
+    if (loaded) {
+      loaded.name = loaded.name || authName;
+      loaded.streakDays = computeStreak(loaded.sessions);
+      setUser(loaded);
+    } else {
+      setUser({ ...initialUser(), name: authName });
+    }
 
-      if (authId) {
-        loaded = await loadUserCloud(authId);
+    const today = dayKey(Date.now());
+    setUser((prev) => {
+      if (prev.dailyMissionDate !== today) {
+        return { ...prev, dailyMissionDate: today, claimedDailyMissions: [] };
       }
+      return prev;
+    });
 
-      if (!loaded) {
-        loaded = loadUserLocal();
-      }
-
-      if (cancelled) return;
-
-      if (loaded) {
-        loaded.name = loaded.name || authName;
-        loaded.streakDays = computeStreak(loaded.sessions);
-        setUser(loaded);
-
-        if (authId && loaded) {
-          void saveUserCloud(authId, loaded);
-        }
-      } else {
-        setUser({ ...initialUser(), name: authName });
-      }
-
-      const today = dayKey(Date.now());
-      setUser((prev) => {
-        if (prev.dailyMissionDate !== today) {
-          return { ...prev, dailyMissionDate: today, claimedDailyMissions: [] };
-        }
-        return prev;
-      });
-
-      const snap = getGridSnapshot();
-      gridRef.current = snap;
-      setGrid(snap);
-      setHydrated(true);
-      prevAuthId.current = authId;
-    };
-
-    void hydrate();
-    return () => { cancelled = true; };
-  }, [authUser?.id]);
+    const snap = getGridSnapshot();
+    gridRef.current = snap;
+    setGrid(snap);
+    setHydrated(true);
+    prevAuthId.current = authId;
+  }, [authUser?.id, authUser?.name, authUser?.username]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -193,14 +145,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-
-    if (authUser?.id) {
-      if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
-      cloudSaveTimer.current = setTimeout(() => {
-        void saveUserCloud(authUser.id, user);
-      }, CLOUD_SAVE_DEBOUNCE_MS);
-    }
-  }, [user, hydrated, authUser?.id]);
+  }, [user, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
