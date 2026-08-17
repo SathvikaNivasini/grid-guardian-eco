@@ -74,37 +74,33 @@ function SignupPage() {
   const { signUp, loading, user } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   if (user) {
     void navigate({ to: "/" });
     return null;
   }
 
-  const pwLength = password.length >= 6;
-  const pwUpper = /[A-Z]/.test(password);
-  const pwNumber = /\d/.test(password);
-  const pwValid = pwLength && pwUpper && pwNumber;
+  const pwLength = password.length >= 4;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pwValid) {
-      setError("Password doesn't meet the requirements below.");
+    if (!pwLength) {
+      setError("Password must be at least 4 characters.");
       return;
     }
     setError(null);
     setSubmitting(true);
-    const err = await signUp(email.trim(), password, name.trim());
+    const err = await signUp(username.trim(), password, name.trim());
     setSubmitting(false);
     if (err) {
       setError(err);
     } else {
-      setSuccess(true);
+      void navigate({ to: "/" });
     }
   };
 
@@ -112,33 +108,15 @@ function SignupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background" style={pageStyle}>
         <div
-          className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
-          style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #22c55e", borderTopColor: "transparent", animation: "spin 1s linear infinite" }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "2px solid #22c55e",
+            borderTopColor: "transparent",
+            animation: "spin 1s linear infinite",
+          }}
         />
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4" style={pageStyle}>
-        <div className="w-full max-w-sm space-y-6 text-center animate-rise" style={{ ...cardStyle, textAlign: "center" }}>
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent" style={iconBoxStyle}>
-            <Check width={32} height={32} className="h-8 w-8 text-primary" style={{ color: "#22c55e" }} />
-          </div>
-          <h1 className="text-2xl font-semibold" style={{ fontSize: 24, fontWeight: 600, marginTop: 24, color: "#fff" }}>Check your email</h1>
-          <p className="text-sm text-muted-foreground" style={{ fontSize: 14, color: "#999", marginTop: 8 }}>
-            We sent a confirmation link to <span className="font-medium text-foreground" style={{ fontWeight: 500, color: "#e5e5e5" }}>{email}</span>.
-            Click it to activate your Guardian account.
-          </p>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
-            style={{ display: "inline-flex", alignItems: "center", padding: "10px 16px", fontSize: 14, fontWeight: 600, borderRadius: 12, background: "#22c55e", color: "#000", textDecoration: "none", marginTop: 24 }}
-          >
-            Go to sign in
-          </Link>
-        </div>
       </div>
     );
   }
@@ -146,31 +124,38 @@ function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4" style={pageStyle}>
       <div className="w-full max-w-sm space-y-8 animate-rise" style={cardStyle}>
-        <div style={{ textAlign: "center" }} className="text-center">
+        <div style={{ textAlign: "center" }}>
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent" style={iconBoxStyle}>
-            <Shield width={32} height={32} className="h-8 w-8 text-primary" style={{ color: "#22c55e" }} />
+            <Shield width={32} height={32} style={{ color: "#22c55e" }} />
           </div>
-          <h1 className="mt-4 text-2xl font-semibold" style={{ fontSize: 24, fontWeight: 600, marginTop: 16, color: "#fff" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 600, marginTop: 16, color: "#fff" }}>
             Become a Guardian
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground" style={{ fontSize: 14, color: "#999", marginTop: 4 }}>
-            Create your account and start protecting the grid.
+          <p style={{ fontSize: 14, color: "#999", marginTop: 4 }}>
+            Create an account with a username and password — no email needed.
           </p>
         </div>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4" style={{ marginTop: 32 }}>
+        <form onSubmit={(e) => void handleSubmit(e)} style={{ marginTop: 32 }}>
           {error && (
             <div
-              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-              style={{ padding: "12px 16px", fontSize: 14, borderRadius: 12, border: "1px solid #ef444466", background: "#ef444418", color: "#ef4444" }}
+              style={{
+                padding: "12px 16px",
+                fontSize: 14,
+                borderRadius: 12,
+                border: "1px solid #ef444466",
+                background: "#ef444418",
+                color: "#ef4444",
+                marginBottom: 16,
+              }}
             >
               {error}
             </div>
           )}
 
           <div style={{ marginTop: 16 }}>
-            <label htmlFor="name" className="block text-sm font-medium text-foreground" style={labelStyle}>
-              Guardian name
+            <label htmlFor="name" style={labelStyle}>
+              Display name
             </label>
             <input
               id="name"
@@ -179,34 +164,32 @@ function SignupPage() {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-border bg-surface/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="Your name"
               style={inputStyle}
             />
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground" style={labelStyle}>
-              Email
+            <label htmlFor="username" style={labelStyle}>
+              Username
             </label>
             <input
-              id="email"
-              type="email"
+              id="username"
+              type="text"
               required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-border bg-surface/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="guardian@example.com"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="pick_a_username"
               style={inputStyle}
             />
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground" style={labelStyle}>
+            <label htmlFor="password" style={labelStyle}>
               Password
             </label>
-            <div className="relative mt-1.5" style={{ position: "relative", marginTop: 6 }}>
+            <div style={{ position: "relative", marginTop: 6 }}>
               <input
                 id="password"
                 type={showPw ? "text" : "password"}
@@ -214,35 +197,48 @@ function SignupPage() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border bg-surface/50 px-4 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="At least 6 characters"
-                style={{ ...inputStyle, paddingRight: 40 }}
+                placeholder="At least 4 characters"
+                style={{ ...inputStyle, paddingRight: 40, marginTop: 0 }}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={showPw ? "Hide password" : "Show password"}
-                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#999", cursor: "pointer" }}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "#999",
+                  cursor: "pointer",
+                }}
               >
                 {showPw ? <EyeOff width={16} height={16} /> : <Eye width={16} height={16} />}
               </button>
             </div>
-            <ul className="mt-2 space-y-1 text-[11px]" style={{ marginTop: 8, listStyle: "none", padding: 0, fontSize: 11 }}>
-              <PwRule ok={pwLength}>At least 6 characters</PwRule>
-              <PwRule ok={pwUpper}>One uppercase letter</PwRule>
-              <PwRule ok={pwNumber}>One number</PwRule>
+            <ul style={{ marginTop: 8, listStyle: "none", padding: 0, fontSize: 11 }}>
+              <PwRule ok={pwLength}>At least 4 characters</PwRule>
             </ul>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-60"
             style={{ ...btnStyle, opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? (
-              <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid #000", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
+              <div
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  border: "2px solid #000",
+                  borderTopColor: "transparent",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
             ) : (
               <UserPlus width={16} height={16} />
             )}
@@ -250,9 +246,9 @@ function SignupPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground" style={{ textAlign: "center", fontSize: 14, color: "#999", marginTop: 32 }}>
+        <p style={{ textAlign: "center", fontSize: 14, color: "#999", marginTop: 32 }}>
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline" style={{ color: "#22c55e", fontWeight: 500, textDecoration: "none" }}>
+          <Link to="/login" style={{ color: "#22c55e", fontWeight: 500, textDecoration: "none" }}>
             Sign in
           </Link>
         </p>
@@ -264,10 +260,27 @@ function SignupPage() {
 function PwRule({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <li
-      className={`flex items-center gap-1.5 ${ok ? "text-primary" : "text-muted-foreground"}`}
-      style={{ display: "flex", alignItems: "center", gap: 6, color: ok ? "#22c55e" : "#999", marginTop: 4 }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        color: ok ? "#22c55e" : "#999",
+        marginTop: 4,
+      }}
     >
-      {ok ? <Check width={12} height={12} /> : <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", border: "1px solid #333" }} />}
+      {ok ? (
+        <Check width={12} height={12} />
+      ) : (
+        <span
+          style={{
+            display: "inline-block",
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            border: "1px solid #333",
+          }}
+        />
+      )}
       {children}
     </li>
   );

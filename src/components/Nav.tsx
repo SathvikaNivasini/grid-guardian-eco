@@ -117,7 +117,7 @@ export function Sidebar() {
 
       {authUser && (
         <div className="px-2 text-[11px] text-muted-foreground truncate">
-          {authUser.user_metadata?.["display_name"] as string ?? authUser.email}
+          {authUser.name || authUser.username}
         </div>
       )}
     </aside>
